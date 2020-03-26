@@ -32,6 +32,12 @@ const (
 	LET      = "LET"
 )
 
+// Language keywords table
+var keywords = map[string]TokenType{
+	"fn":  FUNCTION,
+	"let": LET,
+}
+
 // TokenType distinguishes between different types of tokens.
 type TokenType string
 
@@ -39,4 +45,13 @@ type TokenType string
 type Token struct {
 	Type    TokenType
 	Literal string
+}
+
+// LookupIdent looks up the identifier in ident and returns the appropriate
+// token type depending on whether the identifier is user-defined or a keyword.
+func LookupIdent(ident string) TokenType {
+	if tok, ok := keywords[ident]; ok {
+		return tok // language keyword
+	}
+	return IDENT // user-defined identifier
 }
