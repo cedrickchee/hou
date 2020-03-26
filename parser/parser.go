@@ -4,6 +4,8 @@ package parser
 // lexer and produces as output an AST (Abstract Syntax Tree).
 
 import (
+	"fmt"
+
 	"github.com/cedrickchee/hou/ast"
 	"github.com/cedrickchee/hou/lexer"
 	"github.com/cedrickchee/hou/token"
@@ -13,19 +15,37 @@ import (
 type Parser struct {
 	l *lexer.Lexer
 
+	errors []string
+
 	curToken  token.Token
 	peekToken token.Token
 }
 
 // New constructs a new Parser with a Lexer as input.
 func New(l *lexer.Lexer) *Parser {
-	p := &Parser{l: l}
+	p := &Parser{
+		l:      l,
+		errors: []string{},
+	}
 
 	// Read two tokens, so curToken and peekToken are both set.
 	p.nextToken()
 	p.nextToken()
 
 	return p
+}
+
+// Errors check if the parser encountered any errors.
+func (p *Parser) Errors() []string {
+	return p.errors
+}
+
+// Add an error to errors when the type of peekToken doesn’t match the
+// expectation.
+func (p *Parser) peekError(t token.TokenType) {
+	msg := fmt.Sprintf("expected next token to be %s, got %s instead",
+		t, p.peekToken.Type)
+	p.errors = append(p.errors, msg)
 }
 
 // Helper method that advances both curToken and peekToken.
@@ -98,9 +118,9 @@ func (p *Parser) expectPeek(t token.TokenType) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
 		return true
-	} else {
-		return false
 	}
+	p.peekError(t)
+	return false
 }
 
 func (p *Parser) peekTokenIs(t token.TokenType) bool {
