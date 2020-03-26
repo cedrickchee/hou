@@ -1,0 +1,22 @@
+# Binaries for programs and plugins
+*.so
+*.dylib
+*.dll
+*.exe
+*.exe~
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# OS junks
+*~
+*-e
+*.so
+*.bak
+*.txt
+*.swo
+*.swn
+.DS_Store
