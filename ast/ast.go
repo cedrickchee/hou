@@ -74,3 +74,15 @@ func (i *Identifier) expressionNode() {}
 
 // TokenLiteral prints the literal value of the token associated with this node.
 func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
+
+// ReturnStatement the `return` statement that represents the AST node that
+// holds a return value to the outter stack in the call stack.
+type ReturnStatement struct {
+	Token       token.Token // the 'return' token
+	ReturnValue Expression
+}
+
+func (rs *ReturnStatement) statementNode() {}
+
+// TokenLiteral prints the literal value of the token associated with this node.
+func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
