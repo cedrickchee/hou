@@ -5,10 +5,38 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/cedrickchee/hou/ast"
 	"github.com/cedrickchee/hou/lexer"
 	"github.com/cedrickchee/hou/token"
+)
+
+// Define the precedences of the language.
+// These constants is able to answer: "does the * operator have a higher
+// precedence than the == operator? Does a prefix operator have a higher
+// preference than a call expression?"
+const (
+	_           int = iota
+	LOWEST          // lowest possible precedence
+	EQUALS          // ==
+	LESSGREATER     // > or <
+	SUM             // +
+	PRODUCT         // *
+	PREFIX          // -X or !X
+	CALL            // myFunction(X)
+)
+
+// Pratt parser's idea is the association of parsing functions with token types.
+// Whenever this token type is encountered, the parsing functions are called to
+// parse the appropriate expression and return an AST node that represents it.
+// Each token type can have up to two parsing functions associated with it,
+// depending on whether the token is found in a prefix or an infix position.
+type (
+	prefixParseFn func() ast.Expression
+	// This function argument is "left side" of the infix operator that’s being
+	// parsed.
+	infixParseFn func(ast.Expression) ast.Expression
 )
 
 // Parser implements the parser.
@@ -19,6 +47,11 @@ type Parser struct {
 
 	curToken  token.Token
 	peekToken token.Token
+
+	// maps to get the correct prefixParseFn or infixParseFn for the current
+	// token type.
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
 
 // New constructs a new Parser with a Lexer as input.
@@ -27,6 +60,13 @@ func New(l *lexer.Lexer) *Parser {
 		l:      l,
 		errors: []string{},
 	}
+
+	// Initialize the prefixParseFns map.
+	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
+	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 
 	// Read two tokens, so curToken and peekToken are both set.
 	p.nextToken()
@@ -81,7 +121,7 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -126,6 +166,83 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	return stmt
 }
 
+// The top-level method that kicks off expression parsing.
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{Token: p.curToken}
+
+	stmt.Expression = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+// Check whether there's a parsing function associated with p.curToken.Type in
+// the prefix position.
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFns[p.curToken.Type]
+	if prefix == nil {
+		// noPrefixParseFnError give us better error messages when
+		// program.Statements does not contain one statement but simply one nil.
+		p.noPrefixParseFnError(p.curToken.Type)
+		return nil
+	}
+
+	leftExp := prefix()
+
+	return leftExp
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	// This method doesn’t advance the tokens, it doesn’t call nextToken.
+	// That’s important.
+	// All of our parsing functions, prefixParseFn or infixParseFn, are going to
+	// follow this protocol:
+	// start with curToken being the type of token you’re associated with and
+	// return with curToken being the last token that’s part of your expression
+	// type. Never advance the tokens too far.
+	return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+}
+
+func (p *Parser) noPrefixParseFnError(t token.TokenType) {
+	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{Token: p.curToken}
+
+	value, err := strconv.ParseInt(p.curToken.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as integer", p.curToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	lit.Value = value
+
+	return lit
+}
+
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	expression := &ast.PrefixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+	}
+
+	// Advances our tokens in order to correctly parse a prefix expression
+	// like `-5` more than one token has to be "consumed".
+	p.nextToken()
+
+	// parseExpression() value changes depending on the caller's knowledge and
+	// its context.
+	expression.Right = p.parseExpression(PREFIX)
+
+	return expression
+}
+
 // "assertion functions".
 // Enforce the correctness of the order of tokens by checking the type of the
 // next token.
@@ -144,4 +261,14 @@ func (p *Parser) peekTokenIs(t token.TokenType) bool {
 
 func (p *Parser) curTokenIs(t token.TokenType) bool {
 	return p.curToken.Type == t
+}
+
+// Helper method that add entries to the prefixParseFns map.
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+// Helper method that add entries to the infixParseFns map.
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
 }
