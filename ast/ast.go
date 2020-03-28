@@ -5,6 +5,7 @@ package ast
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/cedrickchee/hou/token"
 )
@@ -82,7 +83,7 @@ func (ls *LetStatement) statementNode() {}
 // TokenLiteral prints the literal value of the token associated with this node.
 func (ls *LetStatement) TokenLiteral() string { return ls.Token.Literal }
 
-// String returns a stringified version of the `let` node.
+// String returns a stringified version of the AST `let` node for debugging.
 func (ls *LetStatement) String() string {
 	var out bytes.Buffer
 
@@ -118,7 +119,7 @@ func (i *Identifier) String() string {
 }
 
 // ReturnStatement the `return` statement that represents the AST node that
-// holds a return value to the outter stack in the call stack.
+// holds a return value to the outer stack in the call stack.
 type ReturnStatement struct {
 	Token       token.Token // the 'return' token
 	ReturnValue Expression
@@ -129,7 +130,7 @@ func (rs *ReturnStatement) statementNode() {}
 // TokenLiteral prints the literal value of the token associated with this node.
 func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
 
-// String returns a stringified version of the `return` node.
+// String returns a stringified version of the AST `return` node for debugging.
 func (rs *ReturnStatement) String() string {
 	var out bytes.Buffer
 
@@ -144,7 +145,8 @@ func (rs *ReturnStatement) String() string {
 	return out.String()
 }
 
-// ExpressionStatement represents an expression node.
+// ExpressionStatement represents an expression statement and holds an
+// expression.
 type ExpressionStatement struct {
 	Token      token.Token // the first token of the expression
 	Expression Expression
@@ -155,7 +157,7 @@ func (es *ExpressionStatement) statementNode() {}
 // TokenLiteral prints the literal value of the token associated with this node.
 func (es *ExpressionStatement) TokenLiteral() string { return es.Token.Literal }
 
-// String returns a stringified version of the expression node
+// String returns a stringified version of the AST for debugging.
 func (es *ExpressionStatement) String() string {
 	// The nil-checks will be taken out, later on, when we can fully build
 	// expressions.
@@ -165,7 +167,7 @@ func (es *ExpressionStatement) String() string {
 	return ""
 }
 
-// IntegerLiteral represents a literal integer node.
+// IntegerLiteral represents a literal integer and holds an integer value.
 type IntegerLiteral struct {
 	Token token.Token
 	Value int64
@@ -176,10 +178,11 @@ func (il *IntegerLiteral) expressionNode() {}
 // TokenLiteral prints the literal value of the token associated with this node.
 func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
 
-// String returns a stringified version of the expression node.
+// String returns a stringified version of the AST for debugging.
 func (il *IntegerLiteral) String() string { return il.Token.Literal }
 
-// PrefixExpression represents a prefix expression node.
+// PrefixExpression represents a prefix expression and holds the operator as
+// as well as the right-hand side expression.
 type PrefixExpression struct {
 	Token    token.Token // The prefix token, e.g. !
 	Operator string
@@ -191,7 +194,7 @@ func (pe *PrefixExpression) expressionNode() {}
 // TokenLiteral prints the literal value of the token associated with this node.
 func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
 
-// String returns a stringified version of the expression node.
+// String returns a stringified version of the AST for debugging.
 func (pe *PrefixExpression) String() string {
 	var out bytes.Buffer
 
@@ -206,7 +209,8 @@ func (pe *PrefixExpression) String() string {
 	return out.String()
 }
 
-// InfixExpression represents an infix expression node.
+// InfixExpression represents an infix expression and holds the left-hand
+// expression, operator and right-hand expression.
 type InfixExpression struct {
 	Token    token.Token // The operator token, e.g. +
 	Left     Expression
@@ -219,7 +223,7 @@ func (oe *InfixExpression) expressionNode() {}
 // TokenLiteral prints the literal value of the token associated with this node.
 func (oe *InfixExpression) TokenLiteral() string { return oe.Token.Literal }
 
-// String returns a stringified version of the expression node.
+// String returns a stringified version of the AST for debugging.
 func (oe *InfixExpression) String() string {
 	var out bytes.Buffer
 
@@ -227,6 +231,143 @@ func (oe *InfixExpression) String() string {
 	out.WriteString(oe.Left.String())
 	out.WriteString(" " + oe.Operator + " ")
 	out.WriteString(oe.Right.String())
+	out.WriteString(")")
+
+	return out.String()
+}
+
+// Boolean represents a boolean value and holds the underlying boolean value.
+type Boolean struct {
+	Token token.Token
+	Value bool // save either true or false.
+}
+
+func (b *Boolean) expressionNode() {}
+
+// TokenLiteral prints the literal value of the token associated with this node.
+func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
+
+// String returns a stringified version of the AST for debugging.
+func (b *Boolean) String() string { return b.Token.Literal }
+
+// IfExpression represents an `if` expression and holds the condition,
+// consequence and alternative expressions
+type IfExpression struct {
+	Token       token.Token // The 'if' token
+	Condition   Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (ie *IfExpression) expressionNode() {}
+
+// TokenLiteral prints the literal value of the token associated with this node.
+func (ie *IfExpression) TokenLiteral() string { return ie.Token.Literal }
+
+// String returns a stringified version of the AST for debugging.
+func (ie *IfExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("if")
+	out.WriteString(ie.Condition.String())
+	out.WriteString(" ")
+	out.WriteString(ie.Consequence.String())
+
+	if ie.Alternative != nil {
+		out.WriteString("else ")
+		out.WriteString(ie.Alternative.String())
+	}
+
+	return out.String()
+}
+
+// BlockStatement represents a block statement and holds a series of statements.
+type BlockStatement struct {
+	Token      token.Token // the { token
+	Statements []Statement
+}
+
+func (bs *BlockStatement) statementNode() {}
+
+// TokenLiteral prints the literal value of the token associated with this node.
+func (bs *BlockStatement) TokenLiteral() string { return bs.Token.Literal }
+
+// String returns a stringified version of the AST for debugging.
+func (bs *BlockStatement) String() string {
+	var out bytes.Buffer
+
+	for _, s := range bs.Statements {
+		out.WriteString(s.String())
+	}
+
+	return out.String()
+}
+
+// FunctionLiteral represents a literal function and has two main parts,
+// the list of parameters and the block statement that is the function's body.
+type FunctionLiteral struct {
+	Token      token.Token // The 'fn' token
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+// The type of AST node for FunctionLiteral is expression.
+func (fl *FunctionLiteral) expressionNode() {}
+
+// TokenLiteral prints the literal value of the token associated with this node.
+func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
+
+// String returns a stringified version of the AST for debugging.
+func (fl *FunctionLiteral) String() string {
+	// The abstract structure of a function literal is:
+	// 		fn <parameters> <block statement>
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, p := range fl.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString(fl.TokenLiteral())
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") ")
+	out.WriteString(fl.Body.String())
+
+	return out.String()
+}
+
+// CallExpression represents a call expression and holds the function to be
+// called as well as the arguments to be passed to that function.
+type CallExpression struct {
+	Token token.Token // The '(' token
+	// Identifier or FunctionLiteral.
+	// FunctionLiteral is the 'fn' token.
+	// Identifier is the function name, example 'add'.
+	Function  Expression
+	Arguments []Expression
+}
+
+func (ce *CallExpression) expressionNode() {}
+
+// TokenLiteral prints the literal value of the token associated with this node.
+func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
+
+// String returns a stringified version of the AST for debugging.
+func (ce *CallExpression) String() string {
+	// Call expression structure:
+	// 		<expression>(<comma separated expressions>)
+
+	var out bytes.Buffer
+
+	args := []string{}
+	for _, a := range ce.Arguments {
+		args = append(args, a.String())
+	}
+
+	out.WriteString(ce.Function.String())
+	out.WriteString("(")
+	out.WriteString(strings.Join(args, ", "))
 	out.WriteString(")")
 
 	return out.String()
