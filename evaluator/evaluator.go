@@ -9,6 +9,20 @@ import (
 	"github.com/cedrickchee/hou/object"
 )
 
+var (
+	// TRUE is a cached Boolean object holding the `true` value.
+	TRUE = &object.Boolean{Value: true}
+
+	// FALSE is a cached Boolean object holding the `false` value.
+	FALSE = &object.Boolean{Value: false}
+
+	// NULL is a cached Null object. There should only be one reference to a
+	// null value, just as there's only one 'true' and one 'false'.
+	// No kinda-but-not-quite-null, no half-null and no
+	// basically-thesame-as-the-other-null.
+	NULL = &object.Null{}
+)
+
 // Eval evaluates the node and returns an object.
 func Eval(node ast.Node) object.Object {
 	// Traverse the AST by starting at the top of the tree, receiving an
@@ -30,6 +44,9 @@ func Eval(node ast.Node) object.Object {
 	// Expressions
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
+
+	case *ast.Boolean:
+		return nativeBoolToBooleanObject(node.Value)
 	}
 
 	return nil
@@ -43,4 +60,20 @@ func evalStatements(stmts []ast.Statement) object.Object {
 	}
 
 	return result
+}
+
+// Helper function to reference true or false to only two instances of
+// object.Boolean: TRUE and FALSE.
+func nativeBoolToBooleanObject(input bool) *object.Boolean {
+	// We shouldn't create a new object.Boolean every time we encounter a true
+	// or false. There is no difference between two trues. The same goes for
+	// false. We shouldn't use new instances every time. There are only two
+	// possible values, so let's reference them instead of allocating new
+	// object.Booleans (creating new ones). That is a small performance
+	// improvement we get without a lot of work.
+
+	if input {
+		return TRUE
+	}
+	return FALSE
 }
