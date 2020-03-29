@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/cedrickchee/hou/evaluator"
 	"github.com/cedrickchee/hou/lexer"
 	"github.com/cedrickchee/hou/parser"
 )
@@ -54,9 +55,12 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		// Print stringified version of the AST to stdout.
-		io.WriteString(out, program.String())
-		io.WriteString(out, "\n")
+		evaluated := evaluator.Eval(program)
+		if evaluated != nil {
+			// Print string representation of the object to stdout.
+			io.WriteString(out, evaluated.Inspect())
+			io.WriteString(out, "\n")
+		}
 	}
 }
 
