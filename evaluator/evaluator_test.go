@@ -9,12 +9,20 @@ import (
 )
 
 func TestEvalIntegerExpression(t *testing.T) {
+	// This test is extended for the `-`` prefix operator for two reasons.
+	// Integers are the only supported operands of the `-`` operator in prefix
+	// position. Second, because this test function should grow to encompass
+	// all integer arithmetic in order to have one place that shows the desired
+	// behaviour in a clear and neat way.
+
 	tests := []struct {
 		input    string
 		expected int64
 	}{
 		{"5", 5},
 		{"10", 10},
+		{"-5", -5},
+		{"-10", -10},
 	}
 
 	for _, tt := range tests {
@@ -30,6 +38,31 @@ func TestEvalBooleanExpression(t *testing.T) {
 	}{
 		{"true", true},
 		{"false", false},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testBooleanObject(t, evaluated, tt.expected)
+	}
+}
+
+func TestBangOperator(t *testing.T) {
+	// Test prefix expressions.
+	// The tests show that the operator should "convert" its operand to a
+	// boolean value and negate it.
+	// Tests help us to nail down the desired behaviour and also act as a
+	// specification.
+
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"!true", false},
+		{"!false", true},
+		{"!5", false},
+		{"!!true", true},
+		{"!!false", false},
+		{"!!5", true},
 	}
 
 	for _, tt := range tests {

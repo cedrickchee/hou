@@ -47,6 +47,12 @@ func Eval(node ast.Node) object.Object {
 
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
+
+	case *ast.PrefixExpression:
+		// The first step is to evaluate its operand and then use the result of
+		// this evaluation with the operator.
+		right := Eval(node.Right)
+		return evalPrefixExpression(node.Operator, right)
 	}
 
 	return nil
@@ -76,4 +82,44 @@ func nativeBoolToBooleanObject(input bool) *object.Boolean {
 		return TRUE
 	}
 	return FALSE
+}
+
+func evalPrefixExpression(operator string, right object.Object) object.Object {
+	// Checks if the operator is supported.
+	switch operator {
+	case "!":
+		return evalBangOperatorExpression(right)
+	case "-":
+		return evalMinusPrefixOperatorExpression(right)
+	default:
+		// If the operator is not supported we return NULL. Is that the best
+		// choice? Maybe, maybe not. For now, it's definitely the easiest
+		// choice, since we don't have any error handling implemented yet.
+		return NULL
+	}
+}
+
+func evalBangOperatorExpression(right object.Object) object.Object {
+	// The behavior of the bang ! operator.
+	switch right {
+	case TRUE:
+		return FALSE
+	case FALSE:
+		return TRUE
+	case NULL:
+		return TRUE
+	default:
+		return FALSE
+	}
+}
+
+func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
+	// Check if the operand is an integer.
+	if right.Type() != object.INTEGER_OBJ {
+		return NULL
+	}
+
+	value := right.(*object.Integer).Value
+	// Allocate a new object to wrap a negated version of this value.
+	return &object.Integer{Value: -value}
 }
