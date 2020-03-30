@@ -33,16 +33,21 @@ func Eval(node ast.Node) object.Object {
 	// Statements
 	case *ast.Program:
 		// Traverse the tree and evaluate every statement of the *ast.Program.
-		return evalStatements(node.Statements)
+		return evalProgram(node)
 
 	case *ast.BlockStatement:
-		return evalStatements(node.Statements)
+		return evalBlockStatement(node)
 
 	case *ast.ExpressionStatement:
 		// If the statement is an *ast.ExpressionStatement we evaluate its
 		// expression. An expression statement (not a return statement and not
 		// a let statement).
 		return Eval(node.Expression)
+
+	case *ast.ReturnStatement:
+		// Evaluate the expression associated with the return statement.
+		val := Eval(node.ReturnValue)
+		return &object.ReturnValue{Value: val}
 
 	// Expressions
 	case *ast.IntegerLiteral:
@@ -69,11 +74,42 @@ func Eval(node ast.Node) object.Object {
 	return nil
 }
 
-func evalStatements(stmts []ast.Statement) object.Object {
+func evalProgram(program *ast.Program) object.Object {
+	// evalProgram was renamed from evalStatements and make less generic because
+	// we can’t reuse evalStatements function for evaluating block statements.
+	// We are using evalBlockStatement for evaluating block statements.
+
 	var result object.Object
 
-	for _, statement := range stmts {
+	for _, statement := range program.Statements {
 		result = Eval(statement)
+
+		// Check if the last evaluation result is such an object.ReturnValue and
+		// if so, we stop the evaluation and return the unwrapped value.
+		if returnValue, ok := result.(*object.ReturnValue); ok {
+			return returnValue.Value
+		}
+	}
+
+	return result
+}
+
+func evalBlockStatement(block *ast.BlockStatement) object.Object {
+	// Evaluate an *ast.BlockStatement.
+
+	var result object.Object
+
+	for _, statement := range block.Statements {
+		result = Eval(statement)
+
+		// Here we explicitly don't unwrap the return value and only check the
+		// Type() of each evaluation result. If it's object.RETURN_VALUE_OBJ we
+		// simply return the *object.ReturnValue, without unwrapping its .Value,
+		// so it stops execution in a possible outer block statement and bubbles
+		// up to evalProgram, where it finally get's unwrapped.
+		if result != nil && result.Type() == object.RETURN_VALUE_OBJ {
+			return result
+		}
 	}
 
 	return result

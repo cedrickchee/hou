@@ -15,6 +15,9 @@ const (
 
 	// NULL_OBJ is the Null object type.
 	NULL_OBJ = "NULL"
+
+	// RETURN_VALUE_OBJ is the Return value object type.
+	RETURN_VALUE_OBJ = "RETURN_VALUE"
 )
 
 // ObjectType represents the type of an object.
@@ -66,3 +69,17 @@ func (n *Null) Type() ObjectType { return NULL_OBJ }
 
 // Inspect returns a stringified version of the object for debugging.
 func (n *Null) Inspect() string { return "null" }
+
+// ReturnValue is the return value type and used to hold the value of another
+// object. This is used for `return` statements and this object is tracked
+// through the evaluator and when encountered stops evaluation of the program,
+// or body of a function.
+type ReturnValue struct {
+	Value Object
+}
+
+// Type returns the type of the object.
+func (rv *ReturnValue) Type() ObjectType { return RETURN_VALUE_OBJ }
+
+// Inspect returns a stringified version of the object for debugging.
+func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
