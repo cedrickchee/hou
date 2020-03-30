@@ -35,6 +35,9 @@ func Eval(node ast.Node) object.Object {
 		// Traverse the tree and evaluate every statement of the *ast.Program.
 		return evalStatements(node.Statements)
 
+	case *ast.BlockStatement:
+		return evalStatements(node.Statements)
+
 	case *ast.ExpressionStatement:
 		// If the statement is an *ast.ExpressionStatement we evaluate its
 		// expression. An expression statement (not a return statement and not
@@ -58,6 +61,9 @@ func Eval(node ast.Node) object.Object {
 		left := Eval(node.Left)
 		right := Eval(node.Right)
 		return evalInfixExpression(node.Operator, left, right)
+
+	case *ast.IfExpression:
+		return evalIfExpression(node)
 	}
 
 	return nil
@@ -179,5 +185,32 @@ func evalIntegerInfixExpression(
 		return nativeBoolToBooleanObject(leftVal != rightVal)
 	default:
 		return NULL
+	}
+}
+
+func evalIfExpression(ie *ast.IfExpression) object.Object {
+	// Deciding what to evaluate.
+
+	condition := Eval(ie.Condition)
+
+	if isTruthy(condition) {
+		return Eval(ie.Consequence)
+	} else if ie.Alternative != nil {
+		return Eval(ie.Alternative)
+	} else {
+		return NULL
+	}
+}
+
+func isTruthy(obj object.Object) bool {
+	switch obj {
+	case NULL:
+		return false
+	case TRUE:
+		return true
+	case FALSE:
+		return false
+	default:
+		return true
 	}
 }

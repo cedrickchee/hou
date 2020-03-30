@@ -100,6 +100,38 @@ func TestBangOperator(t *testing.T) {
 	}
 }
 
+func TestIfElseExpressions(t *testing.T) {
+	// The consequence part of the conditional will be evaluated when the
+	// condition is "truthy”. And "truthy” means: it’s not null and it’s not
+	// false. It doesn’t necessarily need to be true.
+
+	tests := []struct {
+		input    string
+		expected interface{}
+	}{
+		{"if (true) { 10 }", 10},
+		{"if (false) { 10 }", nil},
+		{"if (1) { 10 }", 10},
+		{"if (1 < 2) { 10 }", 10},
+		{"if (1 > 2) { 10 }", nil},
+		{"if (1 > 2) { 10 } else { 20 }", 20},
+		{"if (1 < 2) { 10 } else { 20 }", 10},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		// Type assertion and conversion to allow nil in our expected field.
+		integer, ok := tt.expected.(int)
+		if ok {
+			testIntegerObject(t, evaluated, int64(integer))
+		} else {
+			// When a conditional doesn’t evaluate to a value it's supposed to
+			// return NULL.
+			testNullObject(t, evaluated)
+		}
+	}
+}
+
 func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
@@ -132,6 +164,14 @@ func testBooleanObject(t *testing.T, obj object.Object, expected bool) bool {
 	if result.Value != expected {
 		t.Errorf("object has wrong value. got=%t, want=%t",
 			result.Value, expected)
+		return false
+	}
+	return true
+}
+
+func testNullObject(t *testing.T, obj object.Object) bool {
+	if obj != NULL {
+		t.Errorf("object is not NULL. got=%T (%+v)", obj, obj)
 		return false
 	}
 	return true
