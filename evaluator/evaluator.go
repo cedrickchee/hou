@@ -5,6 +5,8 @@ package evaluator
 // the nodes according to their semantic meaning.
 
 import (
+	"fmt"
+
 	"github.com/cedrickchee/hou/ast"
 	"github.com/cedrickchee/hou/object"
 )
@@ -47,6 +49,9 @@ func Eval(node ast.Node) object.Object {
 	case *ast.ReturnStatement:
 		// Evaluate the expression associated with the return statement.
 		val := Eval(node.ReturnValue)
+		if isError(val) {
+			return val
+		}
 		return &object.ReturnValue{Value: val}
 
 	// Expressions
@@ -60,11 +65,22 @@ func Eval(node ast.Node) object.Object {
 		// The first step is to evaluate its operand and then use the result of
 		// this evaluation with the operator.
 		right := Eval(node.Right)
+		if isError(right) {
+			return right
+		}
 		return evalPrefixExpression(node.Operator, right)
 
 	case *ast.InfixExpression:
 		left := Eval(node.Left)
+		if isError(left) {
+			return left
+		}
+
 		right := Eval(node.Right)
+		if isError(right) {
+			return right
+		}
+
 		return evalInfixExpression(node.Operator, left, right)
 
 	case *ast.IfExpression:
@@ -84,10 +100,14 @@ func evalProgram(program *ast.Program) object.Object {
 	for _, statement := range program.Statements {
 		result = Eval(statement)
 
-		// Check if the last evaluation result is such an object.ReturnValue and
-		// if so, we stop the evaluation and return the unwrapped value.
-		if returnValue, ok := result.(*object.ReturnValue); ok {
-			return returnValue.Value
+		switch result := result.(type) {
+		case *object.ReturnValue:
+			// Check if the last evaluation result is such an object.ReturnValue
+			// and if so, we stop the evaluation and return the unwrapped value.
+			return result.Value
+		case *object.Error:
+			// Error handling — stop the evaluation.
+			return result
 		}
 	}
 
@@ -107,8 +127,11 @@ func evalBlockStatement(block *ast.BlockStatement) object.Object {
 		// simply return the *object.ReturnValue, without unwrapping its .Value,
 		// so it stops execution in a possible outer block statement and bubbles
 		// up to evalProgram, where it finally get's unwrapped.
-		if result != nil && result.Type() == object.RETURN_VALUE_OBJ {
-			return result
+		if result != nil {
+			rt := result.Type()
+			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
+				return result
+			}
 		}
 	}
 
@@ -139,10 +162,9 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 	case "-":
 		return evalMinusPrefixOperatorExpression(right)
 	default:
-		// If the operator is not supported we return NULL. Is that the best
-		// choice? Maybe, maybe not. For now, it's definitely the easiest
-		// choice, since we don't have any error handling implemented yet.
-		return NULL
+		// If the operator is not supported we don't return NULL since we now
+		// have error handling implemented.
+		return newError("unknown operator: %s%s", operator, right.Type())
 	}
 }
 
@@ -163,7 +185,7 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
 	// Check if the operand is an integer.
 	if right.Type() != object.INTEGER_OBJ {
-		return NULL
+		return newError("unknown operator: -%s", right.Type())
 	}
 
 	value := right.(*object.Integer).Value
@@ -190,8 +212,12 @@ func evalInfixExpression(
 	case operator == "!=":
 		// Using pointer comparison to check for equality between booleans.
 		return nativeBoolToBooleanObject(left != right)
+	case left.Type() != right.Type():
+		return newError("type mismatch: %s %s %s",
+			left.Type(), operator, right.Type())
 	default:
-		return NULL
+		return newError("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
 	}
 }
 
@@ -220,7 +246,8 @@ func evalIntegerInfixExpression(
 	case "!=":
 		return nativeBoolToBooleanObject(leftVal != rightVal)
 	default:
-		return NULL
+		return newError("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
 	}
 }
 
@@ -228,6 +255,9 @@ func evalIfExpression(ie *ast.IfExpression) object.Object {
 	// Deciding what to evaluate.
 
 	condition := Eval(ie.Condition)
+	if isError(condition) {
+		return condition
+	}
 
 	if isTruthy(condition) {
 		return Eval(ie.Consequence)
@@ -249,4 +279,20 @@ func isTruthy(obj object.Object) bool {
 	default:
 		return true
 	}
+}
+
+func newError(format string, a ...interface{}) *object.Error {
+	// Helper function to help create new Error type.
+	// Error type wraps the formatted error messages.
+	//
+	// This function finds its use in every place where we didn't know what to
+	// do before and returned NULL instead.
+	return &object.Error{Message: fmt.Sprintf(format, a...)}
+}
+
+func isError(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.ERROR_OBJ
+	}
+	return false
 }

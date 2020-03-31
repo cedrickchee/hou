@@ -18,6 +18,9 @@ const (
 
 	// RETURN_VALUE_OBJ is the Return value object type.
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
+
+	// ERROR_OBJ is the Error object type.
+	ERROR_OBJ = "ERROR"
 )
 
 // ObjectType represents the type of an object.
@@ -83,3 +86,18 @@ func (rv *ReturnValue) Type() ObjectType { return RETURN_VALUE_OBJ }
 
 // Inspect returns a stringified version of the object for debugging.
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
+
+// Error is the error type and used to hold a message denoting the details of
+// error encountered. This object is tracked through the evaluator and when
+// encountered stops evaulation of the program or body of a function.
+// In a production-ready interpreter we'd want to attach a stack trace to such
+// error objects, add the line and column numbers of its origin.
+type Error struct {
+	Message string
+}
+
+// Type returns the type of the object.
+func (e *Error) Type() ObjectType { return ERROR_OBJ }
+
+// Inspect returns a stringified version of the object for debugging.
+func (e *Error) Inspect() string { return "ERROR:" + e.Message }
