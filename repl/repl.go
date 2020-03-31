@@ -10,6 +10,7 @@ import (
 
 	"github.com/cedrickchee/hou/evaluator"
 	"github.com/cedrickchee/hou/lexer"
+	"github.com/cedrickchee/hou/object"
 	"github.com/cedrickchee/hou/parser"
 )
 
@@ -34,6 +35,7 @@ const MONKEYFACE = `            __,__
 // Start starts the REPL in a continuous loop.
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
+	env := object.NewEnvironment()
 
 	for {
 		fmt.Printf(PROMPT)
@@ -55,7 +57,7 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		evaluated := evaluator.Eval(program)
+		evaluated := evaluator.Eval(program, env)
 		if evaluated != nil {
 			// Print string representation of the object to stdout.
 			io.WriteString(out, evaluated.Inspect())

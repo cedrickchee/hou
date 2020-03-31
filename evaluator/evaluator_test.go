@@ -203,6 +203,12 @@ if (10 > 1) {
 `,
 			"unknown operator: BOOLEAN + BOOLEAN",
 		},
+		{
+			// Test to make sure that we get an error when we try to evaluate an
+			// unbound identifier.
+			"foobar",
+			"identifier not found: foobar",
+		},
 	}
 
 	for _, tt := range tests {
@@ -222,13 +228,39 @@ if (10 > 1) {
 	}
 }
 
+func TestLetStatements(t *testing.T) {
+	// The test cases assert that these two things should work: evaluating the
+	// value-producing expression in a let statement and evaluating an
+	// identifier that's bound to a name. But we also need tests to make sure
+	// that we get an error when we try to evaluate an unbound identifier.
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"let a = 5; a;", 5},
+		{"let a = 5 * 5; a;", 25},
+		{"let a = 5; let b = a; b;", 5},
+		{"let a = 5; let b = a; let c = a + b + 5; c;", 15},
+	}
+
+	for _, tt := range tests {
+		testIntegerObject(t, testEval(tt.input), tt.expected)
+	}
+}
+
 func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
 	program := p.ParseProgram()
 
+	// We don’t want to keep state around for each test function and each test
+	// case. Each call to testEval should have a fresh environment so we don't
+	// run into weird bugs involving global state caused by the order in which
+	// tests are run.
+	env := object.NewEnvironment()
+
 	// The heart of the test is the call to Eval.
-	return Eval(program)
+	return Eval(program, env)
 }
 
 func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
