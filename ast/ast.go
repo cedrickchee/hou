@@ -386,3 +386,30 @@ func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
 
 // String returns a stringified version of the AST for debugging.
 func (sl *StringLiteral) String() string { return sl.Token.Literal }
+
+// ArrayLiteral represents the array literal and holds a list of expressions.
+type ArrayLiteral struct {
+	Token    token.Token // the '[' token
+	Elements []Expression
+}
+
+func (al *ArrayLiteral) expressionNode() {}
+
+// TokenLiteral prints the literal value of the token associated with this node.
+func (al *ArrayLiteral) TokenLiteral() string { return al.Token.Literal }
+
+// String returns a stringified version of the AST for debugging.
+func (al *ArrayLiteral) String() string {
+	var out bytes.Buffer
+
+	elements := []string{}
+	for _, el := range al.Elements {
+		elements = append(elements, el.String())
+	}
+
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+
+	return out.String()
+}

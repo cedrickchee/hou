@@ -40,10 +40,12 @@ const (
 	COMMA     = "," // a comma
 	SEMICOLON = ";" // a semi-colon
 
-	LPAREN = "(" // a left paranthesis
-	RPAREN = ")" // a right parenthesis
-	LBRACE = "{" // a left brace
-	RBRACE = "}" // a right brace
+	LPAREN   = "(" // a left paranthesis
+	RPAREN   = ")" // a right parenthesis
+	LBRACE   = "{" // a left brace
+	RBRACE   = "}" // a right brace
+	LBRACKET = "[" // a left bracket
+	RBRACKET = "]" // a right bracket
 
 	//
 	// Keywords
