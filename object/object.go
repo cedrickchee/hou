@@ -19,6 +19,9 @@ const (
 	// BOOLEAN_OBJ is the Boolean object type.
 	BOOLEAN_OBJ = "BOOLEAN"
 
+	// STRING_OBJ is the String object type.
+	STRING_OBJ = "STRING"
+
 	// NULL_OBJ is the Null object type.
 	NULL_OBJ = "NULL"
 
@@ -140,3 +143,15 @@ func (f *Function) Inspect() string {
 
 	return out.String()
 }
+
+// String is the string type used to represent string literals and holds an
+// internal string value.
+type String struct {
+	Value string
+}
+
+// Type returns the type of the object.
+func (s *String) Type() ObjectType { return STRING_OBJ }
+
+// Inspect returns a stringified version of the object for debugging.
+func (s *String) Inspect() string { return s.Value }
