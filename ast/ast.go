@@ -413,3 +413,30 @@ func (al *ArrayLiteral) String() string {
 
 	return out.String()
 }
+
+// IndexExpression represents an index operator expression, e.g: myArray[1] and
+// holds the left expression and index expression. The basic structure is:
+// 		`<expression>[<expression>]`
+type IndexExpression struct {
+	Token token.Token // the [ token
+	Left  Expression
+	Index Expression
+}
+
+func (ie *IndexExpression) expressionNode() {}
+
+// TokenLiteral prints the literal value of the token associated with this node.
+func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
+
+// String returns a stringified version of the AST for debugging.
+func (ie *IndexExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(ie.Left.String())
+	out.WriteString("[")
+	out.WriteString(ie.Index.String())
+	out.WriteString("])")
+
+	return out.String()
+}
