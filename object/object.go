@@ -33,7 +33,14 @@ const (
 
 	// FUNCTION_OBJ is the Function object type.
 	FUNCTION_OBJ = "FUNCTION"
+
+	// BUILTIN_OBJ is the Builtin object type.
+	BUILTIN_OBJ = "BUILTIN"
 )
+
+// BuiltinFunction represents the builtin function type.
+// It's the type definition of a callable Go function.
+type BuiltinFunction func(args ...Object) Object
 
 // ObjectType represents the type of an object.
 type ObjectType string
@@ -155,3 +162,16 @@ func (s *String) Type() ObjectType { return STRING_OBJ }
 
 // Inspect returns a stringified version of the object for debugging.
 func (s *String) Inspect() string { return s.Value }
+
+// Builtin is the builtin object type that simply holds a reference to a
+// BuiltinFunction type that takes zero or more objects as arguments and returns
+// an object.
+type Builtin struct {
+	Fn BuiltinFunction
+}
+
+// Type returns the type of the object.
+func (b *Builtin) Type() ObjectType { return BUILTIN_OBJ }
+
+// Inspect returns a stringified version of the object for debugging.
+func (b *Builtin) Inspect() string { return "builtin function" }
