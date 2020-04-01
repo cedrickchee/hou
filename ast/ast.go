@@ -440,3 +440,31 @@ func (ie *IndexExpression) String() string {
 
 	return out.String()
 }
+
+// HashLiteral represents a hash map or dictionary literal, a set of key/value
+// pairs.
+type HashLiteral struct {
+	Token token.Token // the '{' token
+	Pairs map[Expression]Expression
+}
+
+func (hl *HashLiteral) expressionNode() {}
+
+// TokenLiteral prints the literal value of the token associated with this node.
+func (hl *HashLiteral) TokenLiteral() string { return hl.Token.Literal }
+
+// String returns a stringified version of the AST for debugging.
+func (hl *HashLiteral) String() string {
+	var out bytes.Buffer
+
+	pairs := []string{}
+	for key, value := range hl.Pairs {
+		pairs = append(pairs, key.String()+":"+value.String())
+	}
+
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
+
+	return out.String()
+}

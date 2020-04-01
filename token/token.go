@@ -39,6 +39,7 @@ const (
 	//
 	COMMA     = "," // a comma
 	SEMICOLON = ";" // a semi-colon
+	COLON     = ":" // a colon
 
 	LPAREN   = "(" // a left paranthesis
 	RPAREN   = ")" // a right parenthesis
