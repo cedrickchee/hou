@@ -98,6 +98,30 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
+
+	case *ast.FunctionLiteral:
+		// We just reuse the Parameters and Body fields of the AST node.
+		params := node.Parameters
+		body := node.Body
+		return &object.Function{Parameters: params, Env: env, Body: body}
+
+	case *ast.CallExpression:
+		// Using Eval to get the function we want to call.
+		// Whether that's an *ast.Identifier or an *ast.FunctionLiteral: Eval
+		// returns an *object.Function.
+		function := Eval(node.Function, env)
+		if isError(function) {
+			return function
+		}
+
+		// Evaluate the arguments of a call expression.
+		args := evalExpressions(node.Arguments, env)
+		if len(args) == 1 && isError(args[0]) {
+			return args[0]
+		}
+
+		// Call the function. Apply the function to the arguments.
+		return applyFunction(function, args)
 	}
 
 	return nil
@@ -326,4 +350,71 @@ func isError(obj object.Object) bool {
 		return obj.Type() == object.ERROR_OBJ
 	}
 	return false
+}
+
+func evalExpressions(
+	exps []ast.Expression,
+	env *object.Environment,
+) []object.Object {
+	// Evaluating the arguments is nothing more than evaluating a list of
+	// expressions and keeping track of the produced values. But we also
+	// have to stop the evaluation process as soon as it encounters an
+	// error.
+
+	var result []object.Object
+
+	// This part is where we decided to evaluate the arguments from
+	// left-to-right.
+	for _, e := range exps {
+		// Evaluate ast.Expression in the context of the current environment.
+		evaluated := Eval(e, env)
+		if isError(evaluated) {
+			return []object.Object{evaluated}
+		}
+		result = append(result, evaluated)
+	}
+
+	return result
+}
+
+func applyFunction(fn object.Object, args []object.Object) object.Object {
+	// Convert the fn parameter to a *object.Function reference.
+	function, ok := fn.(*object.Function)
+	if !ok {
+		return newError("not a function: %s", fn.Type())
+	}
+
+	extendedEnv := extendFunctionEnv(function, args)
+	evaluated := Eval(function.Body, extendedEnv)
+	return unwrapReturnValue(evaluated)
+}
+
+func extendFunctionEnv(
+	fn *object.Function,
+	args []object.Object,
+) *object.Environment {
+	// Creates a new *object.Environment that's enclosed by the function's
+	// environment.
+	env := object.NewEnclosedEnvironment(fn.Env)
+
+	for paramIdx, param := range fn.Parameters {
+		// In this new, enclosed environment, binds the arguments of the
+		// function call to the function's parameter names.
+		env.Set(param.Value, args[paramIdx])
+	}
+
+	return env
+}
+
+func unwrapReturnValue(obj object.Object) object.Object {
+	// The result of the evaluation (obj) is unwrapped if it's an
+	// *object.ReturnValue. That’s necessary, because otherwise a return s
+	// tatement would bubble up through several functions and stop the
+	// evaluation in all of them. But we only want to stop the evaluation of the
+	// last called function's body.
+	if returnValue, ok := obj.(*object.ReturnValue); ok {
+		return returnValue.Value
+	}
+
+	return obj
 }

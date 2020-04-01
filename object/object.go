@@ -4,7 +4,13 @@ package object
 // to both represent values as the evaluator encounters and constructs them as
 // well as how the user interacts with values.
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+	"strings"
+
+	"github.com/cedrickchee/hou/ast"
+)
 
 const (
 	// INTEGER_OBJ is the Integer object type.
@@ -21,6 +27,9 @@ const (
 
 	// ERROR_OBJ is the Error object type.
 	ERROR_OBJ = "ERROR"
+
+	// FUNCTION_OBJ is the Function object type.
+	FUNCTION_OBJ = "FUNCTION"
 )
 
 // ObjectType represents the type of an object.
@@ -101,3 +110,33 @@ func (e *Error) Type() ObjectType { return ERROR_OBJ }
 
 // Inspect returns a stringified version of the object for debugging.
 func (e *Error) Inspect() string { return "ERROR:" + e.Message }
+
+// Function is the function type that holds the function's formal parameters,
+// body and an environment to support closures.
+type Function struct {
+	Parameters []*ast.Identifier
+	Body       *ast.BlockStatement
+	Env        *Environment
+}
+
+// Type returns the type of the object.
+func (f *Function) Type() ObjectType { return FUNCTION_OBJ }
+
+// Inspect returns a stringified version of the object for debugging.
+func (f *Function) Inspect() string {
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, p := range f.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString("fn")
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") {\n")
+	out.WriteString(f.Body.String())
+	out.WriteString("\n}")
+
+	return out.String()
+}
