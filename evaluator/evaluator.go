@@ -249,6 +249,8 @@ func evalInfixExpression(
 		// The check for integer operands has to be higher up in the switch
 		// statement.
 		return evalIntegerInfixExpression(operator, left, right)
+	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
+		return evalStringInfixExpression(operator, left, right)
 	case operator == "==":
 		// Using pointer comparison to check for equality between booleans.
 		return nativeBoolToBooleanObject(left == right)
@@ -292,6 +294,23 @@ func evalIntegerInfixExpression(
 		return newError("unknown operator: %s %s %s",
 			left.Type(), operator, right.Type())
 	}
+}
+
+func evalStringInfixExpression(
+	operator string,
+	left, right object.Object,
+) object.Object {
+	// Check for the correct operator.
+	if operator != "+" {
+		return newError("unknown operator: %s %s %s",
+			left.Type(), operator, right.Type())
+	}
+
+	// Unwrap the string objects and construct a new string that's a
+	// concatenation of both operands.
+	leftVal := left.(*object.String).Value
+	rightVal := right.(*object.String).Value
+	return &object.String{Value: leftVal + rightVal}
 }
 
 func evalIfExpression(
