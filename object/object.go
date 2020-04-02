@@ -38,7 +38,7 @@ const (
 	// BUILTIN_OBJ is the Builtin object type.
 	BUILTIN_OBJ = "BUILTIN"
 
-	// ARRAY_OBJECT is the Array object type.
+	// ARRAY_OBJ is the Array object type.
 	ARRAY_OBJ = "ARRAY"
 
 	// HASH_OBJ is the Hash object type.
