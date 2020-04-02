@@ -1088,7 +1088,7 @@ func testInfixExpression(t *testing.T, exp ast.Expression, left interface{},
 
 	opExp, ok := exp.(*ast.InfixExpression)
 	if !ok {
-		t.Errorf("exp is not ast.OperatorExpression. got=%T(%s)", exp, exp)
+		t.Errorf("exp is not *ast.InfixExpression. got=%T(%s)", exp, exp)
 		return false
 	}
 
