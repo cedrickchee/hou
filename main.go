@@ -16,7 +16,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Hello %s! This is the Hou programming language!\n", user.Username)
-	fmt.Printf("Feel free to type in commands\n")
+	fmt.Fprintf(os.Stdout, "Hello %s! This is the Hou programming language!\n", user.Username)
+	fmt.Fprintf(os.Stdout, "Feel free to type in commands\n")
 	repl.Start(os.Stdin, os.Stdout)
 }
